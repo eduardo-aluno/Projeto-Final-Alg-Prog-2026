@@ -1,13 +1,19 @@
 #include "raylib.h"
+
 #define MENU 0
 #define JOGO 1
 #define PAUSE 2
-#include "jogador.h"
 #define GAMEOVER 3
+
+#include "jogador.h"
+#include "mapa.h"
+
 
 
 int main()
 {
+
+
     InitWindow(1200, 800, "Hollow Knight");
     SetExitKey(KEY_NULL);
     Texture2D imagemPause = LoadTexture("assets/image.pause.png");
@@ -23,92 +29,159 @@ int main()
 
     jogador.velocidadeY = 0;
 
-    float chao = 700;
 
-    jogador.x = 100;
-    jogador.y = 600;
     jogador.largura = 50;
-    jogador.altura = 80;
+    jogador.altura = 50;
 
     jogador.atacando = false;
     jogador.tempoAtaque = 0;
+
+   Mapa mapaAtual = CarregarMapa("D:/Personal/Faculdade/Semestres/CIC/2026-1/cadeiras/alg prog/JOGO/HollowKni/bin/Debug/o_teste.txt");
+
+
+    InicializarPosicaoJogador(mapaAtual, &jogador);
+
+
+    Camera2D camera = { 0 };
+    camera.target = (Vector2){ jogador.x, jogador.y };
+    camera.offset = (Vector2){ 1200 / 2.0f, 800 / 2.0f }; // Centraliza o Knight na janela
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
 
 
     while (!WindowShouldClose())
     {
 
-        if (estado == JOGO) // aqui vai toda a parte da fisica e da movimentacao
+        if (estado == JOGO) // Física, movimentação e colisões completas
         {
-            if (IsKeyDown(KEY_RIGHT))
-            {
-                jogador.x += 5;
+           // =====================================================================
+            // 1. MOVIMENTAÇÃO E COLISÃO HORIZONTAL (EIXO X)
+            // =====================================================================
+            float deltaX = 0;
+            if (IsKeyDown(KEY_RIGHT)) {
+                deltaX = 5;
+            }
+            if (IsKeyDown(KEY_LEFT)) {
+                deltaX = -5;
             }
 
-            if (IsKeyDown(KEY_LEFT))
+            jogador.x += deltaX;
+
+            Rectangle hitboxJogador = { jogador.x, jogador.y, jogador.largura, jogador.altura };
+
+            int colunaInicio = (int)(jogador.x / 50) - 2;
+            int colunaFim    = (int)((jogador.x + jogador.largura) / 50) + 2;
+            int linhaInicio  = (int)(jogador.y / 50) - 2;
+            int linhaFim     = (int)((jogador.y + jogador.altura) / 50) + 2;
+
+            if (colunaInicio < 0) colunaInicio = 0;
+            if (colunaFim > MAPA_COLUNAS) colunaFim = MAPA_COLUNAS;
+            if (linhaInicio < 0) linhaInicio = 0;
+            if (linhaFim > MAPA_LINHAS) linhaFim = MAPA_LINHAS;
+
+            for (int l = linhaInicio; l < linhaFim; l++)
             {
-                jogador.x -= 5;
-            }
-
-            if (jogador.x < 0)
-            {
-                jogador.x = 0;
-            }
-
-            if (jogador.x > 1200 - jogador.largura)
-            {
-                jogador.x = 1200 - jogador.largura;
-            }
-
-            jogador.velocidadeY += 0.5;
-
-            jogador.y += jogador.velocidadeY;
-
-            if (jogador.y + jogador.altura >= chao)
-            {
-                jogador.y = chao - jogador.altura;
-                jogador.velocidadeY = 0;
-            }
-
-            if (IsKeyPressed(KEY_UP))
-            {
-                if (jogador.y + jogador.altura >= chao)
+                for (int c = colunaInicio; c < colunaFim; c++)
                 {
-                    jogador.velocidadeY = -12;
+                    if (mapaAtual.matriz[l][c] == 'P' || mapaAtual.matriz[l][c] == 'p')
+                    {
+                        Rectangle hitboxBloco = { c * 50, l * 50, 50, 50 };
+
+                        if (CheckCollisionRecs(hitboxJogador, hitboxBloco))
+                        {
+                            if (deltaX > 0)
+                            {
+                                jogador.x = hitboxBloco.x - jogador.largura;
+                            }
+                            else if (deltaX < 0)
+                            {
+                                jogador.x = hitboxBloco.x + hitboxBloco.width;
+                            }
+                            hitboxJogador.x = jogador.x;
+                        }
+                    }
                 }
             }
 
-            if (IsKeyPressed(KEY_S))
+            if (jogador.x < 0) jogador.x = 0;
+            if (jogador.x > (MAPA_COLUNAS * TAMANHO_BLOCO) - jogador.largura)
+                jogador.x = (MAPA_COLUNAS * TAMANHO_BLOCO) - jogador.largura;
+
+
+            // =====================================================================
+            // 2. APLICAÇÃO DA GRAVIDADE E COLISÃO VERTICAL (EIXO Y)
+            // =====================================================================
+            jogador.velocidadeY += 0.5;
+            jogador.y += jogador.velocidadeY;
+
+            hitboxJogador.y = jogador.y;
+            hitboxJogador.x = jogador.x;
+
+            for (int l = linhaInicio; l < linhaFim; l++)
             {
+                for (int c = colunaInicio; c < colunaFim; c++)
+                {
+                    if (mapaAtual.matriz[l][c] == 'P' || mapaAtual.matriz[l][c] == 'p')
+                    {
+                        Rectangle hitboxBloco = { c * 50, l * 50, 50, 50 };
+
+                        if (CheckCollisionRecs(hitboxJogador, hitboxBloco))
+                        {
+                            if (jogador.velocidadeY > 0)
+                            {
+                                jogador.y = hitboxBloco.y - jogador.altura;
+                                jogador.velocidadeY = 0;
+                            }
+                            else if (jogador.velocidadeY < 0)
+                            {
+                                jogador.y = hitboxBloco.y + hitboxBloco.height;
+                                jogador.velocidadeY = 0;
+                            }
+                            hitboxJogador.y = jogador.y;
+                        }
+                    }
+                }
+            }
+            // =====================================================================
+
+            // 3. SISTEMA DE PULO (Permite pular apenas se estiver firmemente no chão)
+            if (IsKeyPressed(KEY_UP))
+            {
+                if (jogador.velocidadeY == 0)
+                {
+                    jogador.velocidadeY = -12; // Altura do pulo
+                }
+            }
+
+             // Limitadores das bordas externas do mapa (150 colunas * 50 pixels = 7500 pixels de largura)
+            if (jogador.x < 0) jogador.x = 0;
+            if (jogador.x > (MAPA_COLUNAS * TAMANHO_BLOCO) - jogador.largura)
+                jogador.x = (MAPA_COLUNAS * TAMANHO_BLOCO) - jogador.largura;
+
+            // 4. ATUALIZAÇÃO DA CÂMERA SEGUIDORA
+            camera.target.x = jogador.x + jogador.largura / 2.0f;
+            camera.target.y = 400; // Mantém a visão vertical centralizada e estável
+
+            // Lógica de ataque do Knight
+            if (IsKeyPressed(KEY_S)) {
                 jogador.atacando = true;
                 jogador.tempoAtaque = 15;
             }
-
-            if (jogador.atacando)
-            {
+            if (jogador.atacando) {
                 jogador.tempoAtaque--;
-
-                if (jogador.tempoAtaque <= 0)
-                {
-                    jogador.atacando = false;
-                }
+                if (jogador.tempoAtaque <= 0) jogador.atacando = false;
             }
 
-            if (IsKeyPressed(KEY_ESCAPE))
-            {
+            // Lógicas de Pausa, Dano e Fim de Jogo
+            if (IsKeyPressed(KEY_ESCAPE)) {
                 estado = PAUSE;
-
             }
-
-            if (IsKeyPressed(KEY_K))
-            {
+            if (IsKeyPressed(KEY_K)) {
                 ReceberDano(&jogador, 1);
             }
-
-            if (jogador.vida.atual <= 0)
-            {
+            if (jogador.vida.atual <= 0) {
                 estado = GAMEOVER;
             }
-
 
         } // FECHA O if (estado == JOGO)
 
@@ -135,23 +208,24 @@ int main()
 
         else if (estado == JOGO)
         {
-            DesenharHUD(jogador);
 
-            DrawRectangle(
-                0,
-                chao,
-                1200,
-                100,
-                DARKGRAY
-            );
 
-            DrawRectangle(
-                jogador.x,
-                jogador.y,
-                jogador.largura,
-                jogador.altura,
-                WHITE
-            );
+            BeginMode2D(camera);
+
+            DesenharMapa(mapaAtual); // Desenha as paredes e estruturas de fundo
+
+            // Desenha o Knight
+            DrawRectangle(jogador.x, jogador.y, jogador.largura, jogador.altura, WHITE);
+
+            // Desenha o ataque do Knight
+            if (jogador.atacando) {
+                DrawRectangle(jogador.x + jogador.largura, jogador.y + 20, 40, 10, YELLOW);
+            }
+
+        EndMode2D();
+
+
+              DesenharHUD(jogador);
 
 
             // Formato do DrawText -> (texto, x, y, tamanho, cor)
@@ -164,16 +238,6 @@ int main()
             );
 
 
-            if (jogador.atacando)
-            {
-
-                DrawRectangle(
-                    jogador.x + jogador.largura,
-                    jogador.y + 20, 40, 10,
-                    YELLOW
-                );
-
-            }
 
 
             DrawText(

@@ -3,15 +3,13 @@
 
 #include "raylib.h"
 
-typedef struct
-{
+typedef struct {
     int atual;
     int maxima;
-
 } Vida;
 
-typedef struct
-{
+// --- AJUSTE AQUI: Adicionei a palavra Jogador após struct ---
+typedef struct Jogador {
     float x;
     float y;
     float largura;
@@ -23,7 +21,6 @@ typedef struct
     int tempoAtaque;
 
     Vida vida;
-
 } Jogador;
 
 void DesenharHUD(Jogador jogador);

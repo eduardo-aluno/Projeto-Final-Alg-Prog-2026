@@ -1,0 +1,17 @@
+# depslib dependency file v1.0
+1781121679 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\jogador.c
+	"jogador.h"
+
+1781121237 d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\jogador.h
+	"raylib.h"
+
+1781124961 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\main.c
+	"raylib.h"
+	"jogador.h"
+
+1781124366 d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\jogador.h
+	"raylib.h"
+
+1781124366 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\jogador.c
+	"jogador.h"
+

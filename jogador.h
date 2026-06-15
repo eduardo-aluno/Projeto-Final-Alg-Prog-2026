@@ -14,13 +14,11 @@ typedef struct Jogador {
     float y;
     float largura;
     float altura;
-
     float velocidadeY;
-
     bool atacando;
     int tempoAtaque;
-
     Vida vida;
+    Texture2D sprite; // png
 } Jogador;
 
 void DesenharHUD(Jogador jogador);

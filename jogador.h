@@ -17,6 +17,8 @@ typedef struct Jogador {
     float velocidadeY;
     bool atacando;
     int tempoAtaque;
+    int tempoInvencivel; // <-- NOVO: Contador de frames de invencibilidade
+    bool olhandoDireita; // <-- NOVO: Para direcionar o ataque
     Vida vida;
     Texture2D sprite; // png
 } Jogador;

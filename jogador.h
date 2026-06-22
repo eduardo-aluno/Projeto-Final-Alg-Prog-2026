@@ -14,13 +14,16 @@ typedef struct Jogador {
     float y;
     float largura;
     float altura;
-
     float velocidadeY;
-
     bool atacando;
     int tempoAtaque;
-
+    int tempoInvencivel; // <-- NOVO: Contador de frames de invencibilidade
+    bool olhandoDireita; // <-- NOVO: Para direcionar o ataque
     Vida vida;
+    Texture2D sprite; // png
+    int moedas;
+    int energia;
+    int energiaMaxima;
 } Jogador;
 
 void DesenharHUD(Jogador jogador);

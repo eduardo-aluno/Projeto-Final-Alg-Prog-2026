@@ -13,7 +13,12 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add directory="C:/raylib/w64devkit/include" />
 				</Compiler>
+				<Linker>
+					<Add option="-lraylib -lopengl32 -lgdi32 -lwinmm" />
+					<Add directory="C:/raylib/w64devkit/lib" />
+				</Linker>
 			</Target>
 			<Target title="Release">
 				<Option output="bin/Release/HollowKni" prefix_auto="1" extension_auto="1" />
@@ -31,6 +36,10 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="inimigo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="inimigo.h" />
 		<Unit filename="jogador.c">
 			<Option compilerVar="CC" />
 		</Unit>

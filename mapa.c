@@ -89,6 +89,10 @@ void DesenharMapa(Mapa mapa)
                     posX + TAMANHO_BLOCO/2, posY + TAMANHO_BLOCO/2
                 }, 3, 12, 0, PURPLE);
                 break;
+            case 'E': // Entrada/Poço para a fase
+                DrawRectangle(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, BROWN);
+                DrawRectangleLines(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, DARKBROWN);
+                break;
             default:
                 // Espaços vazios (' '), monstros ('M'), jogador ('J') ou boss ('C')
                 // não desenhamos aqui, pois eles serão entidades móveis separadas.

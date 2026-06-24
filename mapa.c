@@ -2,6 +2,13 @@
 #include "jogador.h"
 #include "raylib.h"
 #include <string.h>
+
+static Texture2D texturaChaoGlobal;
+
+void SetTexturaChao(Texture2D textura) {
+    texturaChaoGlobal = textura;
+}
+
 Mapa CarregarMapa(const char *caminhoArquivo)
 {
     Mapa mapa;
@@ -73,15 +80,23 @@ void DesenharMapa(Mapa mapa)
             // Filtra o caractere correspondente
             switch (mapa.matriz[l][c])
             {
-            case 'P': // Paredes/Chão estrutural
-                DrawRectangle(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, DARKGRAY);
-                DrawRectangleLines(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, GRAY); // Borda para destacar os blocos
-                break;
+case 'P': // Paredes/Chão estrutural
+    // ===== USA A TEXTURA SE ESTIVER CARREGADA =====
+    if (texturaChaoGlobal.id != 0) {
+        Rectangle sourceRec = { 0.0f, 0.0f,
+                               (float)texturaChaoGlobal.width,
+                               (float)texturaChaoGlobal.height };
+        Rectangle destRec = { posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO };
+        DrawTexturePro(texturaChaoGlobal, sourceRec, destRec,
+                       (Vector2){0, 0}, 0.0f, WHITE);
+    } else {
+        // Fallback: bloco cinza se a textura não foi carregada
+        DrawRectangle(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, DARKGRAY);
+        DrawRectangleLines(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, GRAY);
+    }
+    break;
             case 'p': // Plataformas internas ou paredes menores
                 DrawRectangle(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, LIGHTGRAY);
-                break;
-            case 'A': // Amuleto
-                DrawCircle(posX + TAMANHO_BLOCO/2, posY + TAMANHO_BLOCO/2, 10, BLUE);
                 break;
             case 'H': // Habilidade
                 DrawPoly((Vector2)
@@ -89,9 +104,32 @@ void DesenharMapa(Mapa mapa)
                     posX + TAMANHO_BLOCO/2, posY + TAMANHO_BLOCO/2
                 }, 3, 12, 0, PURPLE);
                 break;
+            case 'E': // Entrada/Poço para a fase
+                DrawRectangle(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, BROWN);
+                DrawRectangleLines(posX, posY, TAMANHO_BLOCO, TAMANHO_BLOCO, DARKBROWN);
+                break;
             default:
                 // Espaços vazios (' '), monstros ('M'), jogador ('J') ou boss ('C')
                 // não desenhamos aqui, pois eles serão entidades móveis separadas.
+                break;
+            case 'A': // Amuleto
+                // Desenha um diamante brilhante
+                DrawPoly((Vector2)
+                {
+                    posX + TAMANHO_BLOCO/2, posY + TAMANHO_BLOCO/2
+                },
+                4, 15, 45, GOLD);
+                DrawPoly((Vector2)
+                {
+                    posX + TAMANHO_BLOCO/2, posY + TAMANHO_BLOCO/2
+                },
+                4, 10, 45, YELLOW);
+                // Brilho
+                DrawCircle(posX + TAMANHO_BLOCO/2, posY + TAMANHO_BLOCO/2,
+                           5, (Color)
+                {
+                    255, 255, 255, 100
+                });
                 break;
             }
         }

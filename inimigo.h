@@ -2,6 +2,7 @@
 #define INIMIGO_H
 
 #include "raylib.h"
+#include "mapa.h"
 
 // Define a quantidade máxima de inimigos permitida
 #define MAX_INIMIGOS 10
@@ -26,8 +27,9 @@ void InicializarInimigos(Inimigo inimigos[], int quantidade, Texture2D texturaBa
 // NOVO: Escopo do Boss
 void InicializarBoss(Inimigo *boss, float startX, float startY, Texture2D texturaBase);
 
-// ATUALIZADO: Agora com o float jogadorX no final
-void AtualizarInimigos(Inimigo inimigos[], int quantidade, float limiteEsquerda, float limiteDireita, float jogadorX);
+
+// ATUALIZADO: Agora com o parâmetro Mapa
+void AtualizarInimigos(Inimigo inimigos[], int quantidade, float limiteEsquerda, float limiteDireita, Jogador *jogador, Mapa mapa);
 
 void DesenharInimigos(Inimigo inimigos[], int quantidade);
 #endif

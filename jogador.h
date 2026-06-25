@@ -18,14 +18,14 @@ typedef struct Jogador
     float largura;
     float altura;
     float velocidadeY;
-    bool noChao;              // NOVO: Para saber se está no chão
+    bool noChao;
 
     // Combate
     bool atacando;
     int tempoAtaque;
     int tempoInvencivel;
     bool olhandoDireita;
-    int danoAtaque;           // NOVO: Dano do ataque (pode ser modificado por amuletos)
+    int danoAtaque;
 
     // Vida e recursos
     Vida vida;
@@ -34,31 +34,31 @@ typedef struct Jogador
     int energiaMaxima;
 
     // Cura (segurar A)
-    bool curando;             // NOVO: Se está ativamente curando
-    int tempoCura;            // NOVO: Tempo que está segurando A
-    int curaDelay;            // NOVO: Frames entre cada cura (30 = 0.5s)
-    int curaQuantidade;       // NOVO: Quantidade curada por vez (padrão 1)
-    int custoCura;            // NOVO: Custo em energia para curar (padrão 50)
+    bool curando;
+    int tempoCura;
+    int curaDelay;
+    int curaQuantidade;
+    int custoCura;
 
     // Habilidades (Tecla D)
-    bool dashDisponivel;      // NOVO: Se o dash está disponível
-    bool dashAtivo;           // NOVO: Se está realizando o dash
-    int tempoDash;            // NOVO: Duração do dash em frames
-    float dashVelocidade;     // NOVO: Velocidade do dash
-    int custoDash;            // NOVO: Custo em energia do dash
+    bool dashDisponivel;
+    bool dashAtivo;
+    int tempoDash;
+    float dashVelocidade;
+    int custoDash;
 
-    bool puloDuploDisponivel; // NOVO: Se o pulo duplo foi desbloqueado
-    bool puloDuploUsado;      // NOVO: Se o pulo duplo já foi usado no salto atual
+    bool puloDuploDisponivel;
+    bool puloDuploUsado;
 
     // Amuletos (sistema de buffs)
-    bool amuletoVidaExtra;         // +2 vidas
-    bool amuletoDanoExtra;         // +1 dano
-    bool amuletoCuraEficiente;     // Cura mais barata
-    bool amuletoEnergiaInfinita;   // Enche 100% da energia
-    bool amuletoInvencibilidade;   // Invencível por tempo limitado
-    bool amuletoAtaqueEspecial;    // Ataque especial
+    bool amuletoVidaExtra;
+    bool amuletoDanoExtra;
+    bool amuletoCuraEficiente;
+    bool amuletoEnergiaInfinita;
+    bool amuletoInvencibilidade;
+    bool amuletoAtaqueEspecial;
 
-// Inventário (quais amuletos o jogador possui)
+    // Inventário (quais amuletos o jogador possui)
     bool possuiAmuletoVida;
     bool possuiAmuletoDano;
     bool possuiAmuletoCura;
@@ -67,9 +67,16 @@ typedef struct Jogador
     bool possuiAmuletoEspecial;
 
     // Controles para amuletos ativos
-    int tempoInvencibilidadeAmuleto;  // NOVO: Contador de invencibilidade do amuleto
-    bool ataqueEspecialAtivo;         // NOVO: Se o ataque especial está ativo
-    int tempoAtaqueEspecial;          // NOVO: Duração do ataque especial
+    int tempoInvencibilidadeAmuleto;
+    bool ataqueEspecialAtivo;
+    int tempoAtaqueEspecial;
+
+    // NOVAS VARIÁVEIS PARA O ATAQUE ESPECIAL (DISPARO)
+    bool projetilAtivo;
+    float projetilX;
+    float projetilY;
+    float projetilVelocidadeX;
+    int projetilDano;
 
     // Sprite
     Texture2D sprite;
@@ -78,12 +85,11 @@ typedef struct Jogador
 // --- Protótipos das funções ---
 void DesenharHUD(Jogador jogador);
 void ReceberDano(Jogador *jogador, int dano);
-
-// NOVAS FUNÇÕES PARA O SISTEMA DE CURA E HABILIDADES
-void InicializarJogador(Jogador *jogador);  // Função para inicializar todos os campos
-void AtualizarCura(Jogador *jogador);       // Atualiza o estado de cura
-void AtivarDash(Jogador *jogador);          // Ativa o dash
-void AtualizarDash(Jogador *jogador);       // Atualiza o estado do dash
-void AplicarAmuletos(Jogador *jogador);     // Aplica os efeitos dos amuletos
+void InicializarJogador(Jogador *jogador);
+void AtualizarCura(Jogador *jogador);
+void AtivarDash(Jogador *jogador);
+void AtualizarDash(Jogador *jogador);
+void AplicarAmuletos(Jogador *jogador);
+void AtualizarAmuletos(Jogador *jogador);
 
 #endif

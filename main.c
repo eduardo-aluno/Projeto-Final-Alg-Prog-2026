@@ -2,6 +2,7 @@
 #include "inimigo.h"
 #include "jogador.h"
 #include "mapa.h"
+#include "plataforma.h"
 #include <stdio.h>
 
 #define MENU 0
@@ -11,15 +12,13 @@
 #define CREDITOS 4
 #define AJUDA 5
 #define INVENTARIO 6
-
-// ... (Suas funções SalvarJogo, CarregarJogo, NovoJogo, SpawnarEntidadesDoMapa, MudarDeFase permanecem IGUAIS) ...
+#define VITORIA 7
 
 void SalvarJogo(Jogador *jogador, int faseAtual)
 {
     FILE *arquivo = fopen("save.txt", "w");
     if (arquivo != NULL)
     {
-        // Salva a vida atual, vida máxima e a fase atual
         fprintf(arquivo, "%d %d %d\n", jogador->vida.atual, jogador->vida.maxima, faseAtual);
         fclose(arquivo);
     }
@@ -30,28 +29,26 @@ bool CarregarJogo(Jogador *jogador, int *faseAtual)
     FILE *arquivo = fopen("save.txt", "r");
     if (arquivo != NULL)
     {
-        // Carrega os dados salvos
         fscanf(arquivo, "%d %d %d", &jogador->vida.atual, &jogador->vida.maxima, faseAtual);
         fclose(arquivo);
-        return true; // Retorna verdadeiro se o save existir
+        return true;
     }
-    return false; // Retorna falso se não existir save
+    return false;
 }
 
 void NovoJogo(Jogador *jogador, int *faseAtual)
 {
     jogador->vida.atual = 5;
     jogador->vida.maxima = 5;
-    jogador->moedas = 0;           // NOVO
-    jogador->energia = 0;          // NOVO
-    jogador->energiaMaxima = 100;  // NOVO
-    *faseAtual = 0; // 0 representa a Vila
-    remove("save.txt"); // Apaga o save antigo, se houver
+    jogador->moedas = 0;
+    jogador->energia = 0;
+    jogador->energiaMaxima = 100;
+    *faseAtual = 0;
+    remove("save.txt");
 }
 
 void SpawnarEntidadesDoMapa(Mapa mapa, Inimigo inimigos[], Texture2D texInimigo, Texture2D texBoss)
 {
-    // Primeiro, limpa todos os inimigos
     for (int i = 0; i < MAX_INIMIGOS; i++)
     {
         inimigos[i].ativo = false;
@@ -59,7 +56,6 @@ void SpawnarEntidadesDoMapa(Mapa mapa, Inimigo inimigos[], Texture2D texInimigo,
 
     int index = 0;
 
-    // Varre o mapa procurando 'M' e 'C'
     for (int l = 0; l < MAPA_LINHAS; l++)
     {
         for (int c = 0; c < MAPA_COLUNAS; c++)
@@ -69,10 +65,7 @@ void SpawnarEntidadesDoMapa(Mapa mapa, Inimigo inimigos[], Texture2D texInimigo,
                 inimigos[index].largura = 50;
                 inimigos[index].altura = 50;
                 inimigos[index].x = c * TAMANHO_BLOCO;
-
-                // --- AJUSTE: Alinha exatamente em cima do bloco ---
                 inimigos[index].y = (l * TAMANHO_BLOCO) + TAMANHO_BLOCO - inimigos[index].altura;
-
                 inimigos[index].velocidadeX = 2.0f;
                 inimigos[index].vida = 3;
                 inimigos[index].ativo = true;
@@ -82,7 +75,6 @@ void SpawnarEntidadesDoMapa(Mapa mapa, Inimigo inimigos[], Texture2D texInimigo,
             }
             else if (mapa.matriz[l][c] == 'C' && index < MAX_INIMIGOS)
             {
-                // --- AJUSTE: Calcula o Y compensando os 80px de altura do Boss ---
                 float posYCorrigida = (l * TAMANHO_BLOCO) + TAMANHO_BLOCO - 80;
                 InicializarBoss(&inimigos[index], c * TAMANHO_BLOCO, posYCorrigida, texBoss);
                 index++;
@@ -91,39 +83,25 @@ void SpawnarEntidadesDoMapa(Mapa mapa, Inimigo inimigos[], Texture2D texInimigo,
     }
 }
 
-
-void MudarDeFase(int fase, Mapa *mapa, Jogador *jogador, Inimigo inimigos[], Texture2D texInimigo, Texture2D texBoss)
+void MudarDeFase(int fase, Mapa *mapa, Jogador *jogador, Inimigo inimigos[], Texture2D texInimigo, Texture2D texBoss, PlataformaMovel plataformas[])
 {
     Mapa novoMapa;
 
     switch (fase)
     {
-    case 0:
-        novoMapa = CarregarMapa("bin/Debug/vila.txt");
-        break;
-
-    case 1:
-        novoMapa = CarregarMapa("bin/Debug/map - 1.txt");
-        break;
-
-    case 2:
-        novoMapa = CarregarMapa("bin/Debug/map - 2.txt");
-        break;
-
-    default:
-        // Caso dê algum erro ou chegue ao fim das fases, volta para a vila em segurança
-        novoMapa = CarregarMapa("bin/Debug/vila.txt");
-        break;
+    case 0:  novoMapa = CarregarMapa("bin/Debug/vila.txt");     break;
+    case 1:  novoMapa = CarregarMapa("bin/Debug/map - 1.txt");  break;
+    case 2:  novoMapa = CarregarMapa("bin/Debug/map - 2.txt");  break;
+    case 3:  novoMapa = CarregarMapa("bin/Debug/map - 3.txt");  break;
+    default: novoMapa = CarregarMapa("bin/Debug/vila.txt");     break;
     }
 
-    // Agora passamos 'novoMapa' diretamente (sem o asterisco) para as funções!
     InicializarPosicaoJogador(novoMapa, jogador);
     SpawnarEntidadesDoMapa(novoMapa, inimigos, texInimigo, texBoss);
+    SpawnarPlataformas(novoMapa, plataformas);
 
-    // Por fim, guardamos o novo mapa de volta no ponteiro original do jogo
     *mapa = novoMapa;
 }
-
 
 int main()
 {
@@ -145,7 +123,6 @@ int main()
     Sound somCheat = LoadSound("assets/cheat-code-audio.mp3");
 
     SetTexturaChao(texturaChao);
-
     SetTargetFPS(60);
 
     Jogador jogador;
@@ -156,11 +133,14 @@ int main()
     int cliquesTeclaY = 0;
     bool cheatVidaInfinitaAtivo = false;
     bool exibindoTelaCheat = false;
-    int slotSelecionado = 0; // 0: Vida, 1: Dano, 2: Cura (Controla o menu de caixas)
-    int precoAmuleto = 15;   // Custo em moedas de cada amuleto na Vila
+    int slotSelecionado = 0;
+    int precoAmuleto = 15;
     int faseAtual = 0;
     int proximaFase = 1;
     bool emFase = false;
+
+    bool mostrarFeedbackAmuleto = false;
+    int tempoFeedbackAmuleto = 0;
 
     Mapa mapaAtual = CarregarMapa("bin/Debug/vila.txt");
     InicializarPosicaoJogador(mapaAtual, &jogador);
@@ -168,52 +148,44 @@ int main()
     Inimigo inimigos[MAX_INIMIGOS];
     SpawnarEntidadesDoMapa(mapaAtual, inimigos, spriteInimigo, spriteBoss);
 
+    PlataformaMovel plataformas[MAX_PLATAFORMAS];
+    SpawnarPlataformas(mapaAtual, plataformas);
+
     Camera2D camera = { 0 };
-    camera.target = (Vector2)
-    {
-        jogador.x, jogador.y
-    };
-    camera.offset = (Vector2)
-    {
-        600.0f, 400.0f
-    };
+    camera.target = (Vector2){ jogador.x, jogador.y };
+    camera.offset = (Vector2){ 600.0f, 400.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 
-    // Loop principal
     while (!WindowShouldClose())
     {
         bool pertoDoPoco = false;
 
         // ==========================================
-        // 1. LÓGICA DO JOGO (Física, Input, Estados)
+        // 1. LÓGICA DO JOGO
         // ==========================================
         if (estado == JOGO)
         {
-            // Se o cheat já foi ativado antes, mantém a vida sempre cheia
             if (cheatVidaInfinitaAtivo)
             {
                 jogador.vida.atual = jogador.vida.maxima;
             }
 
-            // Detecta o clique na tecla Y
             if (IsKeyPressed(KEY_Y))
             {
                 cliquesTeclaY++;
                 if (cliquesTeclaY >= 3 && !cheatVidaInfinitaAtivo)
                 {
                     cheatVidaInfinitaAtivo = true;
-                    exibindoTelaCheat = true; // Ativa o aviso visual
-                    estado = PAUSE;           // Pausa o jogo temporariamente para exibir a tela
-
+                    exibindoTelaCheat = true;
+                    estado = PAUSE;
                     PlaySound(somCheat);
                 }
             }
 
-            // Diminuir o tempo de invencibilidade do jogador (se houver)
             if (jogador.tempoInvencivel > 0) jogador.tempoInvencivel--;
 
-            // --- MOVIMENTAÇÃO NO EIXO X ---
+            // --- MOVIMENTAÇÃO EIXO X ---
             float deltaX = 0;
             if (IsKeyDown(KEY_RIGHT))
             {
@@ -227,10 +199,8 @@ int main()
             }
 
             jogador.x += deltaX;
-
             Rectangle rectJogador = { jogador.x, jogador.y, jogador.largura, jogador.altura };
 
-            // Varre o mapa para colisão em X (Paredes)
             for (int i = 0; i < MAPA_LINHAS; i++)
             {
                 for (int j = 0; j < MAPA_COLUNAS; j++)
@@ -248,14 +218,13 @@ int main()
                 }
             }
 
-            // --- MOVIMENTAÇÃO NO EIXO Y (Gravidade e Pulo) ---
+            // --- MOVIMENTAÇÃO EIXO Y ---
             jogador.velocidadeY += 0.5f;
             jogador.y += jogador.velocidadeY;
             rectJogador.y = jogador.y;
 
-            bool noChao = false;
+            bool estaNoChao = false;
 
-            // Varre o mapa para colisão em Y (Chão e Teto)
             for (int i = 0; i < MAPA_LINHAS; i++)
             {
                 for (int j = 0; j < MAPA_COLUNAS; j++)
@@ -265,13 +234,13 @@ int main()
                         Rectangle rectBloco = { j * TAMANHO_BLOCO, i * TAMANHO_BLOCO, TAMANHO_BLOCO, TAMANHO_BLOCO };
                         if (CheckCollisionRecs(rectJogador, rectBloco))
                         {
-                            if (jogador.velocidadeY > 0) // Caindo
+                            if (jogador.velocidadeY > 0)
                             {
                                 jogador.y = rectBloco.y - jogador.altura;
                                 jogador.velocidadeY = 0;
-                                noChao = true;
+                                estaNoChao = true;
                             }
-                            else if (jogador.velocidadeY < 0) // Subindo (Bater a cabeça)
+                            else if (jogador.velocidadeY < 0)
                             {
                                 jogador.y = rectBloco.y + TAMANHO_BLOCO;
                                 jogador.velocidadeY = 0;
@@ -282,25 +251,14 @@ int main()
                 }
             }
 
-            camera.target = (Vector2)
-            {
-                jogador.x, jogador.y
-            };
-// ALTERAÇÃO AQUI: Passando as variáveis corretas do main para a função
+            AtualizarPlataformas(plataformas, &jogador, &estaNoChao);
 
-            // CORREÇÃO: Usar a constante global MAPA_COLUNAS em vez de mapaAtual.colunas
+            camera.target = (Vector2){ jogador.x, jogador.y };
+
             AtualizarInimigos(inimigos, MAX_INIMIGOS, 0, MAPA_COLUNAS * TAMANHO_BLOCO, &jogador, mapaAtual);
-
-            // 1. Sistema de CURA
             AtualizarCura(&jogador);
-
-            // 2. Sistema de DASH
             AtualizarDash(&jogador);
 
-            // 3. Aplicar Amuletos
-            AplicarAmuletos(&jogador);
-
-            // 4. Controle do Dash (tecla D)
             if (IsKeyPressed(KEY_D))
             {
                 AtivarDash(&jogador);
@@ -308,7 +266,7 @@ int main()
 
             if (IsKeyPressed(KEY_UP))
             {
-                if (noChao)
+                if (estaNoChao)
                 {
                     jogador.velocidadeY = -12;
                     jogador.puloDuploUsado = false;
@@ -320,80 +278,101 @@ int main()
                 }
             }
 
-            // --- COLETA DE AMULETOS (caractere 'A' no mapa) ---
+            // --- COLETA DE AMULETOS NO MAPA ---
             for (int i = 0; i < MAPA_LINHAS; i++)
             {
                 for (int j = 0; j < MAPA_COLUNAS; j++)
                 {
-                    if (mapaAtual.matriz[i][j] == 'A')
+                    if (mapaAtual.matriz[i][j] == 'H')
                     {
                         Rectangle rectAmuleto = { j * TAMANHO_BLOCO, i * TAMANHO_BLOCO, TAMANHO_BLOCO, TAMANHO_BLOCO };
-
                         if (CheckCollisionRecs(rectJogador, rectAmuleto))
                         {
-                            int tipoAmuleto = GetRandomValue(0, 5);
-
-                            switch(tipoAmuleto)
-                            {
-                            case 0:
-                                jogador.possuiAmuletoVida = true;
-                                jogador.amuletoVidaExtra = true;
-                                break;
-                            case 1:
-                                jogador.possuiAmuletoDano = true;
-                                jogador.amuletoDanoExtra = true;
-                                break;
-                            case 2:
-                                jogador.possuiAmuletoCura = true;
-                                jogador.amuletoCuraEficiente = true;
-                                break;
-                            case 3:
-                                jogador.possuiAmuletoEnergia = true;
-                                jogador.amuletoEnergiaInfinita = true;
-                                break;
-                            case 4:
-                                jogador.possuiAmuletoInvencivel = true;
-                                jogador.amuletoInvencibilidade = true;
-                                jogador.tempoInvencibilidadeAmuleto = 300;
-                                break;
-                            case 5:
-                                jogador.possuiAmuletoEspecial = true;
-                                jogador.amuletoAtaqueEspecial = true;
-                                break;
-                            }
-
+                            jogador.possuiAmuletoEspecial = true;
+                            jogador.amuletoAtaqueEspecial = true;
                             mapaAtual.matriz[i][j] = ' ';
+                            mostrarFeedbackAmuleto = true;
+                            tempoFeedbackAmuleto = 120;
                         }
                     }
                 }
             }
 
-            // --- ATAQUE ESPECIAL (Amuleto) ---
-            if (IsKeyPressed(KEY_F) && jogador.amuletoAtaqueEspecial &&
-                    jogador.energia >= 30 && !jogador.ataqueEspecialAtivo)
+            // --- ATAQUE ESPECIAL (HADOUKEN) ---
+            if (IsKeyPressed(KEY_Z) && jogador.amuletoAtaqueEspecial && jogador.energia >= 30 && !jogador.projetilAtivo)
             {
+                jogador.projetilAtivo = true;
+                jogador.projetilX = jogador.x + (jogador.olhandoDireita ? jogador.largura : -20);
+                jogador.projetilY = jogador.y + 20;
+                jogador.projetilVelocidadeX = jogador.olhandoDireita ? 10.0f : -10.0f;
+                jogador.projetilDano = 5;
+                jogador.energia -= 30;
                 jogador.ataqueEspecialAtivo = true;
                 jogador.tempoAtaqueEspecial = 30;
-                jogador.energia -= 30;
+            }
+
+            // Atualiza o projétil ativo
+            if (jogador.projetilAtivo)
+            {
+                jogador.projetilX += jogador.projetilVelocidadeX;
 
                 for (int i = 0; i < MAX_INIMIGOS; i++)
                 {
                     if (inimigos[i].ativo)
                     {
-                        float distX = abs(inimigos[i].x - jogador.x);
-                        float distY = abs(inimigos[i].y - jogador.y);
+                        Rectangle rectProjetil = { jogador.projetilX, jogador.projetilY, 20, 20 };
+                        Rectangle rectInimigo = { inimigos[i].x, inimigos[i].y, inimigos[i].largura, inimigos[i].altura };
 
-                        if (distX < 200 && distY < 200)
+                        if (CheckCollisionRecs(rectProjetil, rectInimigo))
                         {
-                            inimigos[i].vida -= 3;
+                            if (inimigos[i].eChefe)
+                            {
+                                inimigos[i].vida -= inimigos[i].vida / 2;
+                            }
+                            else
+                            {
+                                inimigos[i].vida -= jogador.projetilDano;
+                            }
 
                             if (inimigos[i].vida <= 0)
                             {
                                 inimigos[i].ativo = false;
                                 jogador.moedas += inimigos[i].eChefe ? 5 : 1;
+
+                                if (inimigos[i].eChefe)
+                                {
+                                    if (proximaFase < 3)
+                                    {
+                                        proximaFase++;
+                                        faseAtual = 0;
+                                        emFase = false;
+                                        jogador.vida.atual = jogador.vida.maxima;
+                                        MudarDeFase(faseAtual, &mapaAtual, &jogador, inimigos, spriteInimigo, spriteBoss, plataformas);
+                                    }
+                                    else
+                                    {
+                                        estado = VITORIA;
+                                    }
+                                }
                             }
+                            jogador.projetilAtivo = false;
+                            break;
                         }
                     }
+                }
+
+                if (jogador.projetilX > MAPA_COLUNAS * TAMANHO_BLOCO || jogador.projetilX < 0)
+                {
+                    jogador.projetilAtivo = false;
+                }
+            }
+
+            if (jogador.ataqueEspecialAtivo)
+            {
+                jogador.tempoAtaqueEspecial--;
+                if (jogador.tempoAtaqueEspecial <= 0)
+                {
+                    jogador.ataqueEspecialAtivo = false;
                 }
             }
 
@@ -405,28 +384,25 @@ int main()
                     if (mapaAtual.matriz[i][j] == 'E')
                     {
                         Rectangle rectPoco = { j * TAMANHO_BLOCO, i * TAMANHO_BLOCO, TAMANHO_BLOCO, TAMANHO_BLOCO };
-
                         if (CheckCollisionRecs(rectJogador, rectPoco) && faseAtual == 0)
                         {
                             pertoDoPoco = true;
-
                             if (IsKeyPressed(KEY_UP))
                             {
                                 faseAtual = proximaFase;
                                 emFase = true;
-                                MudarDeFase(faseAtual, &mapaAtual, &jogador, inimigos, spriteInimigo, spriteBoss);
+                                MudarDeFase(faseAtual, &mapaAtual, &jogador, inimigos, spriteInimigo, spriteBoss, plataformas);
                             }
                         }
                     }
                 }
             }
 
-// --- CONTROLE DE ATAQUE DO JOGADOR ---
+            // --- CONTROLE DE ATAQUE PADRÃO ---
             if (IsKeyPressed(KEY_S) && !jogador.atacando)
             {
                 jogador.atacando = true;
                 jogador.tempoAtaque = 15;
-
                 PlaySound(somAtaque);
 
                 Rectangle rectAtaque;
@@ -447,12 +423,8 @@ int main()
                         if (CheckCollisionRecs(rectAtaque, rectInimigo))
                         {
                             inimigos[i].vida -= jogador.danoAtaque;
-
                             jogador.energia += 20;
-                            if (jogador.energia > jogador.energiaMaxima)
-                            {
-                                jogador.energia = jogador.energiaMaxima;
-                            }
+                            if (jogador.energia > jogador.energiaMaxima) jogador.energia = jogador.energiaMaxima;
 
                             if (inimigos[i].vida <= 0)
                             {
@@ -461,112 +433,79 @@ int main()
 
                                 if (inimigos[i].eChefe)
                                 {
-                                    // Se tem próxima fase, avança o contador
-                                    if (proximaFase < 2)
+                                    if (proximaFase < 3)
                                     {
                                         proximaFase++;
+                                        faseAtual = 0;
+                                        emFase = false;
+                                        jogador.vida.atual = jogador.vida.maxima;
+                                        MudarDeFase(faseAtual, &mapaAtual, &jogador, inimigos, spriteInimigo, spriteBoss, plataformas);
                                     }
                                     else
                                     {
-                                        printf("PARABENS! VOCE COMPLETOU O JOGO!\n");
+                                        estado = VITORIA;
                                     }
-
-                                    faseAtual = 0; // Prepara para voltar para a Vila
-                                    emFase = false;
-                                    jogador.vida.atual = jogador.vida.maxima;
-
-                                    // Carrega efetivamente a Vila e tira o jogador da arena!
-                                    MudarDeFase(faseAtual, &mapaAtual, &jogador, inimigos, spriteInimigo, spriteBoss);
                                 }
-                            } // Fecha if vida <= 0
-                        } // Fecha if colisão
-                    } // Fecha if ativo
-                } // Fecha loop FOR
-            } // Fecha if do ataque
-
-            // Duração do Ataque
-            if (jogador.atacando)
-            {
-                jogador.tempoAtaque--;
-                if (jogador.tempoAtaque <= 0)
-                {
-                    jogador.atacando = false;
-                }
-            }
-
-            // --- SISTEMA DE COMBATE: INIMIGO DANDO DANO NO JOGADOR ---
-            for (int i = 0; i < MAX_INIMIGOS; i++)
-            {
-                if (inimigos[i].ativo)
-                {
-                    Rectangle rectInimigo = { inimigos[i].x, inimigos[i].y, inimigos[i].largura, inimigos[i].altura };
-
-                    if (CheckCollisionRecs(rectJogador, rectInimigo) && jogador.tempoInvencivel == 0)
-                    {
-                        int dano = inimigos[i].eChefe ? 2 : 1;
-                        ReceberDano(&jogador, dano);
-                        jogador.tempoInvencivel = 60;
-
-                        PlaySound(somDano);
-
-                        if (jogador.vida.atual <= 0)
-                        {
-                            estado = GAMEOVER;
+                            }
                         }
                     }
                 }
             }
 
-            if (IsKeyPressed(KEY_ESCAPE))
+            if (jogador.atacando)
             {
-                estado = PAUSE;
+                jogador.tempoAtaque--;
+                if (jogador.tempoAtaque <= 0) jogador.atacando = false;
             }
 
-
-            if (IsKeyPressed(KEY_I)) // <--- ADICIONE ESTE BLOCO
+            // --- DANO NO JOGADOR ---
+            for (int i = 0; i < MAX_INIMIGOS; i++)
             {
-                estado = INVENTARIO;
+                if (inimigos[i].ativo)
+                {
+                    Rectangle rectInimigo = { inimigos[i].x, inimigos[i].y, inimigos[i].largura, inimigos[i].altura };
+                    if (CheckCollisionRecs(rectJogador, rectInimigo) && jogador.tempoInvencivel == 0)
+                    {
+                        int dano = inimigos[i].eChefe ? 2 : 1;
+                        ReceberDano(&jogador, dano);
+                        jogador.tempoInvencivel = 60;
+                        PlaySound(somDano);
+
+                        if (jogador.vida.atual <= 0) estado = GAMEOVER;
+                    }
+                }
             }
 
-        } // <--- FECHA O if(estado == JOGO) AQUI!
+            if (IsKeyPressed(KEY_ESCAPE)) estado = PAUSE;
+            if (IsKeyPressed(KEY_I))      estado = INVENTARIO;
+        }
 
         // ==========================================
-        // LÓGICA DO INVENTÁRIO (Pausa o Jogo)
+        // LÓGICA DO INVENTÁRIO
         // ==========================================
-        if (estado == INVENTARIO)
+        else if (estado == INVENTARIO)
         {
-            // Voltar para o jogo com ESC
-            if (IsKeyPressed(KEY_ESCAPE))
-            {
-                estado = JOGO;
-            }
+            if (IsKeyPressed(KEY_ESCAPE)) estado = JOGO;
 
-            // Navegação entre os 3 blocos (esquerda e direita)
             if (IsKeyPressed(KEY_RIGHT))
             {
                 slotSelecionado++;
-                if (slotSelecionado > 2) slotSelecionado = 0;
+                if (slotSelecionado > 3) slotSelecionado = 0;
             }
             if (IsKeyPressed(KEY_LEFT))
             {
                 slotSelecionado--;
-                if (slotSelecionado < 0) slotSelecionado = 2;
+                if (slotSelecionado < 0) slotSelecionado = 3;
             }
-
-            // Selecionar ou Comprar com ENTER
             if (IsKeyPressed(KEY_ENTER))
             {
-                // Reseta os amuletos ativos primeiro (Regra: apenas um por vez)
                 jogador.amuletoVidaExtra = false;
                 jogador.amuletoDanoExtra = false;
                 jogador.amuletoCuraEficiente = false;
 
-                if (slotSelecionado == 0) // Slot 1: Vida
+                if (slotSelecionado == 0)
                 {
-                    if (jogador.possuiAmuletoVida)
-                    {
-                        jogador.amuletoVidaExtra = true;
-                    }
+                    if (jogador.possuiAmuletoVida) jogador.amuletoVidaExtra = true;
                     else if (faseAtual == 0 && jogador.moedas >= precoAmuleto)
                     {
                         jogador.moedas -= precoAmuleto;
@@ -574,12 +513,9 @@ int main()
                         jogador.amuletoVidaExtra = true;
                     }
                 }
-                else if (slotSelecionado == 1) // Slot 2: Dano
+                else if (slotSelecionado == 1)
                 {
-                    if (jogador.possuiAmuletoDano)
-                    {
-                        jogador.amuletoDanoExtra = true;
-                    }
+                    if (jogador.possuiAmuletoDano) jogador.amuletoDanoExtra = true;
                     else if (faseAtual == 0 && jogador.moedas >= precoAmuleto)
                     {
                         jogador.moedas -= precoAmuleto;
@@ -587,12 +523,9 @@ int main()
                         jogador.amuletoDanoExtra = true;
                     }
                 }
-                else if (slotSelecionado == 2) // Slot 3: Cura
+                else if (slotSelecionado == 2)
                 {
-                    if (jogador.possuiAmuletoCura)
-                    {
-                        jogador.amuletoCuraEficiente = true;
-                    }
+                    if (jogador.possuiAmuletoCura) jogador.amuletoCuraEficiente = true;
                     else if (faseAtual == 0 && jogador.moedas >= precoAmuleto)
                     {
                         jogador.moedas -= precoAmuleto;
@@ -600,15 +533,26 @@ int main()
                         jogador.amuletoCuraEficiente = true;
                     }
                 }
+                else if (slotSelecionado == 3)
+                {
+                    if (jogador.possuiAmuletoEspecial)
+                    {
+                        jogador.amuletoAtaqueEspecial = !jogador.amuletoAtaqueEspecial;
+                    }
+                    else if (faseAtual == 0 && jogador.moedas >= precoAmuleto)
+                    {
+                        jogador.moedas -= precoAmuleto;
+                        jogador.possuiAmuletoEspecial = true;
+                        jogador.amuletoAtaqueEspecial = true;
+                    }
+                }
 
-                // Reaplica instantaneamente os buffs modificados (Limpo e Corrigido!)
                 AplicarAmuletos(&jogador);
             }
         }
 
-
         // ==========================================
-        // 2. DESENHO DO JOGO (Renderização na tela)
+        // 2. DESENHO DO JOGO (RENDERIZAÇÃO)
         // ==========================================
         BeginDrawing();
         ClearBackground(BLACK);
@@ -624,52 +568,32 @@ int main()
 
             if (IsKeyPressed(KEY_J))
             {
-                if (!CarregarJogo(&jogador, &faseAtual))
-                {
-                    NovoJogo(&jogador, &faseAtual);
-                }
+                if (!CarregarJogo(&jogador, &faseAtual)) NovoJogo(&jogador, &faseAtual);
                 InicializarPosicaoJogador(mapaAtual, &jogador);
                 estado = JOGO;
             }
-
             if (IsKeyPressed(KEY_N))
             {
                 NovoJogo(&jogador, &faseAtual);
                 InicializarPosicaoJogador(mapaAtual, &jogador);
                 estado = JOGO;
             }
-            if (IsKeyPressed(KEY_A))
-            {
-                estado = AJUDA;
-            }
-
-            if (IsKeyPressed(KEY_S))
-            {
-                CloseWindow();
-            }
-            if (IsKeyPressed(KEY_C))
-            {
-                estado = CREDITOS;
-            }
+            if (IsKeyPressed(KEY_A)) estado = AJUDA;
+            if (IsKeyPressed(KEY_S)) CloseWindow();
+            if (IsKeyPressed(KEY_C)) estado = CREDITOS;
         }
         else if (estado == JOGO)
         {
-
-            ClearBackground(BLACK);
-
             Rectangle sourceRecFundo = { 0.0f, 0.0f, (float)fundo.width, (float)fundo.height };
             Rectangle destRecFundo = { 0.0f, 0.0f, 1200.0f, 800.0f };
             Vector2 originFundo = { 0.0f, 0.0f };
-            float rotacaoFundo = 0.0f;
 
-            // Desenha o fundo usando as novas variáveis
-            // Desenha o fundo usando as novas variáveis
-            DrawTexturePro(fundo, sourceRecFundo, destRecFundo, originFundo, rotacaoFundo, WHITE);
+            DrawTexturePro(fundo, sourceRecFundo, destRecFundo, originFundo, 0.0f, WHITE);
 
-            // 3. Entra no modo da câmera
             BeginMode2D(camera);
             DesenharMapa(mapaAtual);
             DesenharInimigos(inimigos, MAX_INIMIGOS);
+            DesenharPlataformas(plataformas, texturaChao);
 
             Rectangle sourceRec = { 0.0f, 0.0f, (float)jogador.sprite.width, (float)jogador.sprite.height };
             Rectangle destRec = { jogador.x, jogador.y, (float)jogador.largura, (float)jogador.altura };
@@ -687,26 +611,14 @@ int main()
 
                 if (jogador.olhandoDireita)
                 {
-                    destRecAtaque = (Rectangle)
-                    {
-                        jogador.x + jogador.largura, jogador.y + 10, 40, 40
-                    };
-                    DrawTexturePro(spriteAtaque, sourceRecAtaque, destRecAtaque, (Vector2)
-                    {
-                        0, 0
-                    }, 0.0f, WHITE);
+                    destRecAtaque = (Rectangle){ jogador.x + jogador.largura, jogador.y + 10, 40, 40 };
+                    DrawTexturePro(spriteAtaque, sourceRecAtaque, destRecAtaque, (Vector2){ 0, 0 }, 0.0f, WHITE);
                 }
                 else
                 {
                     sourceRecAtaque.width = -sourceRecAtaque.width;
-                    destRecAtaque = (Rectangle)
-                    {
-                        jogador.x - 40, jogador.y + 10, 40, 40
-                    };
-                    DrawTexturePro(spriteAtaque, sourceRecAtaque, destRecAtaque, (Vector2)
-                    {
-                        0, 0
-                    }, 0.0f, WHITE);
+                    destRecAtaque = (Rectangle){ jogador.x - 40, jogador.y + 10, 40, 40 };
+                    DrawTexturePro(spriteAtaque, sourceRecAtaque, destRecAtaque, (Vector2){ 0, 0 }, 0.0f, WHITE);
                 }
             }
 
@@ -715,15 +627,26 @@ int main()
                 DrawText("Aperte CIMA para entrar/sair", jogador.x - 60, jogador.y - 30, 15, WHITE);
             }
 
+            // --- PROJÉTIL AZUL DO ATAQUE ESPECIAL ---
+            if (jogador.projetilAtivo)
+            {
+                DrawCircle(jogador.projetilX + 10, jogador.projetilY + 10, 15, BLUE);
+                DrawCircle(jogador.projetilX + 10, jogador.projetilY + 10, 10, SKYBLUE);
+                DrawCircleLines(jogador.projetilX + 10, jogador.projetilY + 10, 15, DARKBLUE);
+            }
+
             EndMode2D();
 
             DesenharHUD(jogador);
 
-            DrawText("S - Atacar", 20, 760, 20, RED);
-            DrawText("ESC - Pause", 180, 760, 20, WHITE);
-            DrawText("D - Dash", 360, 760, 20, BLUE);
-            DrawText("A (segure) - Curar", 500, 760, 20, GREEN);
-            DrawText("Seta p/ cima - Jump/Double Jump", 780, 760, 20, YELLOW);
+            // Interface limpa de botões na HUD
+            DrawText("S - Atacar", 25, 715, 16, RED);
+            DrawText("Z - Tiro Especial", 25, 740, 16, SKYBLUE);
+            DrawText("D - Dash", 25, 765, 16, BLUE);
+
+            DrawText("A (segure) - Curar", 280, 715, 16, GREEN);
+            DrawText("Seta para Cima - Pulo", 280, 740, 16, YELLOW);
+            DrawText("ESC - Pausar Jogo", 280, 765, 16, WHITE);
 
             char textoFase[50];
             sprintf(textoFase, "Fase: %d/%d", proximaFase-1, 2);
@@ -731,45 +654,31 @@ int main()
         }
         else if (estado == PAUSE)
         {
-            // SE FOR A TELA DO CHEAT CODE
             if (exibindoTelaCheat)
             {
-                ClearBackground(BLACK); // Garante tela preta de fundo
-
-
+                ClearBackground(BLACK);
                 DrawTexture(imagemCheat, 450, 100, WHITE);
                 DrawText("CHEAT CODE ATIVADO - NOOB DETECTADO", 250, 580, 35, RED);
                 DrawText("clique em enter para continuar", 430, 640, 20, LIGHTGRAY);
 
-                // Sai da tela de cheat e volta pro jogo ao apertar ENTER
                 if (IsKeyPressed(KEY_ENTER))
                 {
                     exibindoTelaCheat = false;
                     estado = JOGO;
-                    cliquesTeclaY = 0; // Reseta o contador
+                    cliquesTeclaY = 0;
                 }
             }
-            // SE FOR O PAUSE NORMAL DO ESC
             else
             {
                 DrawTexture(imagemPause, 0, 0, WHITE);
-
                 DrawText("GAME PAUSED", 460, 220, 40, MAROON);
                 DrawText("Press C to Continue", 440, 340, 30, MAROON);
                 DrawText("Press J to Save Game", 435, 400, 30, MAROON);
                 DrawText("Press S to Exit to Menu", 410, 460, 30, MAROON);
 
-                if (IsKeyPressed(KEY_C))
-                    estado = JOGO;
-
-                if (IsKeyPressed(KEY_J))
-                {
-                    SalvarJogo(&jogador, faseAtual);
-                    DrawText("JOGO SALVO!", 300, 450, 30, GREEN);
-                }
-
-                if (IsKeyPressed(KEY_S))
-                    estado = MENU;
+                if (IsKeyPressed(KEY_C)) estado = JOGO;
+                if (IsKeyPressed(KEY_S)) estado = MENU;
+                if (IsKeyPressed(KEY_J)) SalvarJogo(&jogador, faseAtual);
             }
         }
         else if (estado == CREDITOS)
@@ -782,8 +691,7 @@ int main()
             DrawText("Universidade Federal do Rio Grande do Sul", 80, 340, 20, LIGHTGRAY);
             DrawText("Pressione ESC para voltar", 180, 520, 20, GRAY);
 
-            if (IsKeyPressed(KEY_ESCAPE))
-                estado = MENU;
+            if (IsKeyPressed(KEY_ESCAPE)) estado = MENU;
         }
         else if (estado == AJUDA)
         {
@@ -799,10 +707,7 @@ int main()
             DrawText("* Ao derrotar o chefe, voce volta para a Vila recuperado!", 50, 470, 20, LIGHTGRAY);
             DrawText("Pressione ESC para voltar ao Menu", 200, 540, 20, GRAY);
 
-            if (IsKeyPressed(KEY_ESCAPE))
-            {
-                estado = MENU;
-            }
+            if (IsKeyPressed(KEY_ESCAPE)) estado = MENU;
         }
         else if (estado == GAMEOVER)
         {
@@ -816,30 +721,41 @@ int main()
                 estado = MENU;
             }
         }
+        else if (estado == VITORIA)
+        {
+            ClearBackground(BLACK);
+            DrawText("VOCE VENCEU!", 400, 200, 60, GOLD);
+            DrawText("PARABENS POR COMPLETAR O JOGO!", 280, 300, 35, WHITE);
+            DrawText(TextFormat("Moedas coletadas: %d", jogador.moedas), 430, 380, 25, YELLOW);
+            DrawText("Pressione ENTER para voltar ao Menu", 350, 500, 25, LIGHTGRAY);
 
+            if (IsKeyPressed(KEY_ENTER))
+            {
+                estado = MENU;
+                proximaFase = 1;
+                faseAtual = 0;
+                MudarDeFase(0, &mapaAtual, &jogador, inimigos, spriteInimigo, spriteBoss, plataformas);
+            }
+        }
         else if (estado == INVENTARIO)
         {
-            ClearBackground(BLACK); // Tela preta exigida
-
+            ClearBackground(BLACK);
             DrawText("INVENTARIO DE AMULETOS", 400, 100, 30, WHITE);
             DrawText("Pressione ESC para fechar e voltar", 430, 150, 18, GRAY);
             DrawText(TextFormat("Suas Moedas: %d", jogador.moedas), 520, 200, 22, YELLOW);
 
-            // Desenhar os 3 campos (Quadrados)
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 4; i++)
             {
-                int posX = 250 + (i * 260);
+                int posX = 150 + (i * 220);
                 int posY = 320;
 
-                // Se for o slot selecionado pelas setas, desenha borda amarela, se não, branca
                 Color corBorda = (i == slotSelecionado) ? YELLOW : WHITE;
                 DrawRectangleLines(posX, posY, 200, 200, corBorda);
                 if (i == slotSelecionado)
                 {
-                    DrawRectangleLines(posX - 2, posY - 2, 204, 204, YELLOW); // Borda dupla de destaque
+                    DrawRectangleLines(posX - 2, posY - 2, 204, 204, YELLOW);
                 }
 
-                // Configura os textos específicos de cada slot
                 char* nome = "";
                 char* desc = "";
                 bool possui = false;
@@ -866,63 +782,96 @@ int main()
                     possui = jogador.possuiAmuletoCura;
                     ativo = jogador.amuletoCuraEficiente;
                 }
+                else if (i == 3)
+                {
+                    nome = "Amuleto Especial";
+                    desc = "Dispara projeteis\nazuis (Tecla Z)";
+                    possui = jogador.possuiAmuletoEspecial;
+                    ativo = jogador.amuletoAtaqueEspecial;
+                }
 
-                // Exibe as informações dentro do quadrado
                 DrawText(nome, posX + 15, posY + 20, 18, WHITE);
                 DrawText(desc, posX + 15, posY + 60, 14, LIGHTGRAY);
 
-                if (ativo)
-                {
-                    DrawText("EQUIPADO", posX + 50, posY + 140, 16, GREEN);
-                }
-                else if (possui)
-                {
-                    DrawText("POSSUI", posX + 65, posY + 140, 16, BLUE);
-                }
+                if (ativo)       DrawText("EQUIPADO", posX + 50, posY + 140, 16, GREEN);
+                else if (possui) DrawText("POSSUI", posX + 65, posY + 140, 16, BLUE);
                 else
                 {
-                    if (faseAtual == 0)
-                    {
-                        DrawText("COMPRAR: 15$ [Enter]", posX + 15, posY + 140, 14, ORANGE);
-                    }
-                    else
-                    {
-                        DrawText("BLOQUEADO", posX + 50, posY + 140, 16, RED);
-                    }
+                    if (faseAtual == 0) DrawText("COMPRAR: 15$ [Enter]", posX + 15, posY + 140, 14, ORANGE);
+                    else                DrawText("BLOQUEADO", posX + 50, posY + 140, 16, RED);
                 }
             }
 
-            // Mensagem de ajuda no rodapé
-            if (faseAtual != 0)
+            if (IsKeyPressed(KEY_ENTER))
             {
-                DrawText("* Novos amuletos só podem ser comprados na Vila (Fase 0)", 350, 600, 16, RED);
-            }
-            else
-            {
-                DrawText("* Você está na Vila: Use Moedas para liberar itens trancados", 350, 600, 16, GREEN);
+                jogador.amuletoVidaExtra = false;
+                jogador.amuletoDanoExtra = false;
+                jogador.amuletoCuraEficiente = false;
+
+                if (slotSelecionado == 0)
+                {
+                    if (jogador.possuiAmuletoVida) jogador.amuletoVidaExtra = true;
+                    else if (faseAtual == 0 && jogador.moedas >= precoAmuleto)
+                    {
+                        jogador.moedas -= precoAmuleto;
+                        jogador.possuiAmuletoVida = true;
+                        jogador.amuletoVidaExtra = true;
+                    }
+                }
+                else if (slotSelecionado == 1)
+                {
+                    if (jogador.possuiAmuletoDano) jogador.amuletoDanoExtra = true;
+                    else if (faseAtual == 0 && jogador.moedas >= precoAmuleto)
+                    {
+                        jogador.moedas -= precoAmuleto;
+                        jogador.possuiAmuletoDano = true;
+                        jogador.amuletoDanoExtra = true;
+                    }
+                }
+                else if (slotSelecionado == 2)
+                {
+                    if (jogador.possuiAmuletoCura) jogador.amuletoCuraEficiente = true;
+                    else if (faseAtual == 0 && jogador.moedas >= precoAmuleto)
+                    {
+                        jogador.moedas -= precoAmuleto;
+                        jogador.possuiAmuletoCura = true;
+                        jogador.amuletoCuraEficiente = true;
+                    }
+                }
+                else if (slotSelecionado == 3)
+                {
+                    if (jogador.possuiAmuletoEspecial)
+                    {
+                        jogador.amuletoAtaqueEspecial = !jogador.amuletoAtaqueEspecial;
+                    }
+                    else if (faseAtual == 0 && jogador.moedas >= precoAmuleto)
+                    {
+                        jogador.moedas -= precoAmuleto;
+                        jogador.possuiAmuletoEspecial = true;
+                        jogador.amuletoAtaqueEspecial = true;
+                    }
+                }
+
+                AplicarAmuletos(&jogador);
             }
         }
 
         EndDrawing();
-    } // <--- FECHA O while
+    }
 
-    // ==========================================
-    // 3. FINALIZAÇÃO (FORA DO WHILE)
-    // ==========================================
     UnloadTexture(spriteInimigo);
     UnloadTexture(spriteJogador);
     UnloadTexture(spriteAtaque);
     UnloadTexture(imagemPause);
     UnloadTexture(fundo);
+    UnloadTexture(imagemCheat);
 
     UnloadSound(somAtaque);
     UnloadSound(somDano);
     UnloadSound(somCheat);
-    UnloadTexture(imagemCheat);
 
     CloseAudioDevice();
-
     CloseWindow();
 
     return 0;
-} // <--- FECHA O main
+}

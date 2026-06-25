@@ -5,17 +5,18 @@
 1781121237 d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\jogador.h
 	"raylib.h"
 
-1782339606 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\main.c
+1782355254 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\main.c
 	"raylib.h"
 	"inimigo.h"
 	"jogador.h"
 	"mapa.h"
+	"plataforma.h"
 	<stdio.h>
 
-1782255801 d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\jogador.h
+1782353759 d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\jogador.h
 	"raylib.h"
 
-1782255912 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\jogador.c
+1782353760 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\jogador.c
 	"jogador.h"
 	"raylib.h"
 	<stdio.h>
@@ -141,9 +142,10 @@
 1781201456 c:\raylib\w64devkit\include\sec_api\string_s.h
 	<string.h>
 
-1782315421 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\inimigo.c
+1782351557 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\inimigo.c
 	"inimigo.h"
 	"jogador.h"
+	<math.h>
 
 1782315420 d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\inimigo.h
 	"raylib.h"
@@ -212,4 +214,12 @@
 	"jogador.h"
 	"raylib.h"
 	<string.h>
+
+1782351076 source:d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\plataforma.c
+	"plataforma.h"
+
+1782349518 d:\personal\faculdade\semestres\cic\2026-1\cadeiras\alg prog\jogo\hollowkni\plataforma.h
+	"raylib.h"
+	"mapa.h"
+	"jogador.h"
 

@@ -1,9 +1,8 @@
 #include "inimigo.h"
-#include "jogador.h" // Incluído para permitir a colisão e aplicação de dano direto
+#include "jogador.h" // Incluído para permitir a colisão e aplicação de dano/energia direto
+#include <math.h>
 
-///////novas atualizacoes//////
-
-// Estrutura simples para o projétil do chefe
+// Estrutura interna para os projéteis do chefe
 typedef struct {
     float x;
     float y;
@@ -13,10 +12,11 @@ typedef struct {
     bool ativo;
 } ProjetilBoss;
 
-// Instância global do projétil do chefe
-ProjetilBoss projetilChefe = { 0, 0, 0, 15, 15, false };
+// Instâncias globais dos dois projéteis do chefe
+ProjetilBoss projetilChefe = { 0, 0, 0, 15, 15, false };       // Bolinha Amarela (Tira Vida)
+ProjetilBoss projetilVermelho = { 0, 0, 0, 15, 15, false };    // Bolinha Vermelha (Tira 10% de Energia)
 
-// Função para verificar se um retângulo colide com blocos sólidos do mapa
+// Função auxiliar para verificar se um retângulo colide com blocos sólidos do mapa
 bool ColidindoComParedes(Rectangle rect, Mapa mapa) {
     for (int i = 0; i < MAPA_LINHAS; i++) {
         for (int j = 0; j < MAPA_COLUNAS; j++) {
@@ -36,155 +36,142 @@ bool ColidindoComParedes(Rectangle rect, Mapa mapa) {
     return false;
 }
 
-// Função para movimentar o inimigo com colisão
-void MoverInimigoComColisao(Inimigo *inimigo, float deltaX, float deltaY, Mapa mapa) {
-    // Movimento em X
-    inimigo->x += deltaX;
-    Rectangle rectInimigo = {
-        inimigo->x,
-        inimigo->y,
-        inimigo->largura,
-        inimigo->altura
-    };
-
-    if (ColidindoComParedes(rectInimigo, mapa)) {
-        // Se colidiu, desfaz o movimento em X
-        inimigo->x -= deltaX;
-        // Inverte a direção
-        inimigo->velocidadeX *= -1;
-    }
-
-    // Movimento em Y
-    inimigo->y += deltaY;
-    rectInimigo.x = inimigo->x;
-    rectInimigo.y = inimigo->y;
-
-    if (ColidindoComParedes(rectInimigo, mapa)) {
-        // Se colidiu, desfaz o movimento em Y
-        inimigo->y -= deltaY;
-    }
-}
-
-/////// fim das novas atualizacoes /////
-
-// Inicialize os inimigos em posições relativas ao mundo do mapa
+// Função para inicializar os monstros comuns do mapa
 void InicializarInimigos(Inimigo inimigos[], int quantidade, Texture2D texturaBase) {
     for (int i = 0; i < quantidade; i++) {
         inimigos[i].largura = 50;
         inimigos[i].altura = 50;
-        inimigos[i].x = 600 + (i * 200);
-        inimigos[i].y = 500;
         inimigos[i].velocidadeX = 2.0f;
-        inimigos[i].vida = 3;
-        inimigos[i].ativo = true;
+        inimigos[i].vida = 2;
+        inimigos[i].ativo = false;
         inimigos[i].sprite = texturaBase;
         inimigos[i].eChefe = false;
+        inimigos[i].tempoAtaqueEspecial = 0;
     }
-    // Garante que o projétil comece desativado ao iniciar a fase
-    projetilChefe.ativo = false;
 }
 
+// Função para inicializar as propriedades exclusivas do Boss
 void InicializarBoss(Inimigo *boss, float startX, float startY, Texture2D texturaBase) {
-    boss->largura = 80; // Boss um pouco maior
-    boss->altura = 80;
     boss->x = startX;
     boss->y = startY;
+    boss->largura = 80;  // Boss é ligeiramente maior
+    boss->altura = 80;
     boss->velocidadeX = 1.5f;
-    boss->vida = 10; // 3x mais vida que o normal
+    boss->vida = 10;     // Mais vida que monstros normais
     boss->ativo = true;
     boss->sprite = texturaBase;
     boss->eChefe = true;
     boss->tempoAtaqueEspecial = 0;
-
-    projetilChefe.ativo = false;
 }
 
-// ATUALIZADO: Agora aceita o ponteiro do jogador para aplicar o dano do projétil diretamente
+// Atualização de IA, movimentações, ataques e colisões de projéteis
 void AtualizarInimigos(Inimigo inimigos[], int quantidade, float limiteEsquerda, float limiteDireita, Jogador *jogador, Mapa mapa) {
-    float jogadorX = jogador->x;
-
     for (int i = 0; i < quantidade; i++) {
         if (!inimigos[i].ativo) continue;
 
         if (inimigos[i].eChefe) {
-            // --- INTELIGÊNCIA DO BOSS ---
-            float deltaX = 0;
-            if (jogadorX > inimigos[i].x) {
-                deltaX = inimigos[i].velocidadeX;
-            } else if (jogadorX < inimigos[i].x) {
-                deltaX = -inimigos[i].velocidadeX;
+            // --- MOVIMENTAÇÃO DO BOSS (Persegue a posição X do jogador lentamente) ---
+            if (jogador->x < inimigos[i].x) {
+                inimigos[i].x -= 1.0f;
+            } else {
+                inimigos[i].x += 1.0f;
             }
 
-            // Movimento com colisão
-            MoverInimigoComColisao(&inimigos[i], deltaX, 0, mapa);
-
-            // --- LÓGICA DO ATAQUE ESPECIAL (PROJÉTIL) ---
+            // --- INTELIGÊNCIA DE ATAQUE DO BOSS ---
             inimigos[i].tempoAtaqueEspecial++;
 
-            // Dispara a cada 180 frames (aprox. 3 segundos em 60 FPS)
-            if (inimigos[i].tempoAtaqueEspecial >= 180) {
-                if (!projetilChefe.ativo) {
+            // A cada 120 frames (~2 segundos a 60 FPS), o Boss decide o ataque
+            if (inimigos[i].tempoAtaqueEspecial >= 120) {
+                inimigos[i].tempoAtaqueEspecial = 0;
+
+                // Sorteia o ataque: 0 para Amarelo (Vida), 1 para Vermelho (Energia)
+                int tipoAtaque = GetRandomValue(0, 1);
+
+                if (tipoAtaque == 0 && !projetilChefe.ativo) {
+                    // Dispara Bolinha Amarela (Vida)
+                    projetilChefe.x = inimigos[i].x + (inimigos[i].largura / 2);
+                    projetilChefe.y = inimigos[i].y + 20;
+                    projetilChefe.velocidadeX = (jogador->x < inimigos[i].x) ? -6.0f : 6.0f;
                     projetilChefe.ativo = true;
-                    // Nasce no centro do Boss
-                    projetilChefe.x = inimigos[i].x + inimigos[i].largura / 2;
-                    projetilChefe.y = inimigos[i].y + inimigos[i].altura / 2 - 5;
-
-                    // Define a direção baseada na posição do jogador
-                    if (jogadorX > inimigos[i].x) {
-                        projetilChefe.velocidadeX = 6.0f; // Dispara para a direita
-                    } else {
-                        projetilChefe.velocidadeX = -6.0f; // Dispara para a esquerda
-                    }
                 }
-                inimigos[i].tempoAtaqueEspecial = 0; // Reseta o timer
+                else if (tipoAtaque == 1 && !projetilVermelho.ativo) {
+                    // Dispara Bolinha Vermelha (Energia)
+                    projetilVermelho.x = inimigos[i].x + (inimigos[i].largura / 2);
+                    projetilVermelho.y = inimigos[i].y + 20;
+                    projetilVermelho.velocidadeX = (jogador->x < inimigos[i].x) ? -6.0f : 6.0f;
+                    projetilVermelho.ativo = true;
+                }
             }
-
         } else {
-            // --- INIMIGO NORMAL ---
-            float deltaX = inimigos[i].velocidadeX;
-            MoverInimigoComColisao(&inimigos[i], deltaX, 0, mapa);
+            // --- MOVIMENTAÇÃO DO MONSTRO COMUM (Patrulha padrão com limites e paredes) ---
+            inimigos[i].x += inimigos[i].velocidadeX;
+            Rectangle rectInimigo = { inimigos[i].x, inimigos[i].y, inimigos[i].largura, inimigos[i].altura };
 
-            if (inimigos[i].x <= limiteEsquerda ||
-                inimigos[i].x + inimigos[i].largura >= limiteDireita) {
+            if (ColidindoComParedes(rectInimigo, mapa) || inimigos[i].x <= limiteEsquerda || inimigos[i].x >= limiteDireita) {
                 inimigos[i].velocidadeX *= -1;
             }
         }
     }
 
-    // --- ATUALIZAÇÃO DO PROJÉTIL DO CHEFE ---
+    // --- FÍSICA E COLISÃO DO PROJÉTIL AMARELO (Dano de Vida) ---
     if (projetilChefe.ativo) {
         projetilChefe.x += projetilChefe.velocidadeX;
-
         Rectangle rectProjetil = { projetilChefe.x, projetilChefe.y, projetilChefe.largura, projetilChefe.altura };
         Rectangle rectJogador = { jogador->x, jogador->y, jogador->largura, jogador->altura };
 
-        // 1. Colisão com paredes desaparece o projétil
         if (ColidindoComParedes(rectProjetil, mapa)) {
             projetilChefe.ativo = false;
         }
 
-        // 2. Colisão com o jogador causa dano (1 de vida) usando a sua função ReceberDano
         if (projetilChefe.ativo && CheckCollisionRecs(rectProjetil, rectJogador)) {
-            ReceberDano(jogador, 1);
-            projetilChefe.ativo = false; // Projétil some ao atingir
+            ReceberDano(jogador, 1); // Causa 1 de dano usando a mecânica interna
+            projetilChefe.ativo = false;
+        }
+    }
+
+    // --- FÍSICA E COLISÃO DO PROJÉTIL VERMELHO (Dano de 10% de Energia) ---
+    if (projetilVermelho.ativo) {
+        projetilVermelho.x += projetilVermelho.velocidadeX;
+        Rectangle rectProjetilV = { projetilVermelho.x, projetilVermelho.y, projetilVermelho.largura, projetilVermelho.altura };
+        Rectangle rectJogador = { jogador->x, jogador->y, jogador->largura, jogador->altura };
+
+        if (ColidindoComParedes(rectProjetilV, mapa)) {
+            projetilVermelho.ativo = false;
+        }
+
+        if (projetilVermelho.ativo && CheckCollisionRecs(rectProjetilV, rectJogador)) {
+            // Reduz 10% do total máximo de energia (10% de 100 = 10 pontos)
+            int perdaEnergia = (int)(jogador->energiaMaxima * 0.10f);
+            jogador->energia -= perdaEnergia;
+
+            if (jogador->energia < 0) {
+                jogador->energia = 0; // Impede que a energia fique negativa
+            }
+
+            projetilVermelho.ativo = false;
         }
     }
 }
 
+// Renderização dos sprites dos inimigos e desenho dos círculos de ataque
 void DesenharInimigos(Inimigo inimigos[], int quantidade) {
     for (int i = 0; i < quantidade; i++) {
         if (!inimigos[i].ativo) continue;
 
         Rectangle sourceRec = { 0.0f, 0.0f, (float)inimigos[i].sprite.width, (float)inimigos[i].sprite.height };
         Rectangle destRec = { (float)inimigos[i].x, (float)inimigos[i].y, inimigos[i].largura, inimigos[i].altura };
-
         DrawTexturePro(inimigos[i].sprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
     }
 
-    // --- DESENHAR O PROJÉTIL (Caso esteja ativo) ---
+    // --- DESENHAR PROJÉTIL AMARELO (Caso esteja ativo) ---
     if (projetilChefe.ativo) {
-        // Desenha uma esfera de energia laranja/vermelha simulando um ataque mágico
-        DrawCircle((int)projetilChefe.x + projetilChefe.largura/2, (int)projetilChefe.y + projetilChefe.altura/2, projetilChefe.largura, ORANGE);
-        DrawCircle((int)projetilChefe.x + projetilChefe.largura/2, (int)projetilChefe.y + projetilChefe.altura/2, projetilChefe.largura - 4, YELLOW);
+        DrawCircle(projetilChefe.x + 7.5f, projetilChefe.y + 7.5f, 8, GOLD);
+        DrawCircle(projetilChefe.x + 7.5f, projetilChefe.y + 7.5f, 5, YELLOW);
+    }
+
+    // --- DESENHAR PROJÉTIL VERMELHO (Caso esteja ativo) ---
+    if (projetilVermelho.ativo) {
+        DrawCircle(projetilVermelho.x + 7.5f, projetilVermelho.y + 7.5f, 8, MAROON);
+        DrawCircle(projetilVermelho.x + 7.5f, projetilVermelho.y + 7.5f, 5, RED);
     }
 }

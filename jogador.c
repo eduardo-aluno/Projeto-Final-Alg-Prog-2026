@@ -46,11 +46,17 @@ void InicializarJogador(Jogador *jogador)
     jogador->puloDuploUsado = false;
 
     // Amuletos
+    jogador->amuletoVidaExtra = false;
+    jogador->amuletoDanoExtra = false;
+    jogador->amuletoCuraEficiente = false;
     jogador->amuletoEnergiaInfinita = false;
     jogador->amuletoInvencibilidade = false;
     jogador->amuletoAtaqueEspecial = false;
 
     // Inventário
+    jogador->possuiAmuletoVida = false;
+    jogador->possuiAmuletoDano = false;
+    jogador->possuiAmuletoCura = false;
     jogador->possuiAmuletoEnergia = false;
     jogador->possuiAmuletoInvencivel = false;
     jogador->possuiAmuletoEspecial = false;
@@ -59,6 +65,13 @@ void InicializarJogador(Jogador *jogador)
     jogador->tempoInvencibilidadeAmuleto = 0;
     jogador->ataqueEspecialAtivo = false;
     jogador->tempoAtaqueEspecial = 0;
+
+    // NOVAS VARIÁVEIS PARA ATAQUE ESPECIAL (CORRIGIDO)
+    jogador->projetilAtivo = false;      // USANDO -> (ponteiro)
+    jogador->projetilX = 0;              // USANDO ->
+    jogador->projetilY = 0;              // USANDO ->
+    jogador->projetilVelocidadeX = 0;    // USANDO ->
+    jogador->projetilDano = 5;           // USANDO ->
 }
 
 // --- Função para atualizar a cura ---

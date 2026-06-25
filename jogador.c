@@ -66,12 +66,12 @@ void InicializarJogador(Jogador *jogador)
     jogador->ataqueEspecialAtivo = false;
     jogador->tempoAtaqueEspecial = 0;
 
-    // NOVAS VARIÁVEIS PARA ATAQUE ESPECIAL (CORRIGIDO)
-    jogador->projetilAtivo = false;      // USANDO -> (ponteiro)
-    jogador->projetilX = 0;              // USANDO ->
-    jogador->projetilY = 0;              // USANDO ->
-    jogador->projetilVelocidadeX = 0;    // USANDO ->
-    jogador->projetilDano = 5;           // USANDO ->
+    // NOVAS VARIÁVEIS PARA ATAQUE ESPECIAL
+    jogador->projetilAtivo = false;
+    jogador->projetilX = 0;
+    jogador->projetilY = 0;
+    jogador->projetilVelocidadeX = 0;
+    jogador->projetilDano = 5;
 }
 
 // --- Função para atualizar a cura ---
@@ -80,7 +80,7 @@ void AtualizarCura(Jogador *jogador)
     if (IsKeyDown(KEY_A))
     {
         if (jogador->energia >= jogador->custoCura &&
-            jogador->vida.atual < jogador->vida.maxima)
+                jogador->vida.atual < jogador->vida.maxima)
         {
             jogador->curando = true;
             jogador->tempoCura++;
@@ -111,7 +111,7 @@ void AtualizarCura(Jogador *jogador)
 void AtivarDash(Jogador *jogador)
 {
     if (jogador->dashDisponivel && !jogador->dashAtivo &&
-        jogador->energia >= jogador->custoDash)
+            jogador->energia >= jogador->custoDash)
     {
         jogador->dashAtivo = true;
         jogador->tempoDash = 15;

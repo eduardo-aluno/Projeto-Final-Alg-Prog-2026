@@ -298,75 +298,101 @@ int main()
                 }
             }
 
-            // --- ATAQUE ESPECIAL (HADOUKEN) ---
-            if (IsKeyPressed(KEY_Z) && jogador.amuletoAtaqueEspecial && jogador.energia >= 30 && !jogador.projetilAtivo)
-            {
-                jogador.projetilAtivo = true;
-                jogador.projetilX = jogador.x + (jogador.olhandoDireita ? jogador.largura : -20);
-                jogador.projetilY = jogador.y + 20;
-                jogador.projetilVelocidadeX = jogador.olhandoDireita ? 10.0f : -10.0f;
-                jogador.projetilDano = 5;
-                jogador.energia -= 30;
-                jogador.ataqueEspecialAtivo = true;
-                jogador.tempoAtaqueEspecial = 30;
-            }
+            // --- ATAQUE ESPECIAL (HADOUKEN) - CORRIGIDO ---
+if (IsKeyPressed(KEY_F) && jogador.amuletoAtaqueEspecial && jogador.energia >= 30 && !jogador.projetilAtivo)
+{
+    jogador.projetilAtivo = true;
+    jogador.projetilX = jogador.x + (jogador.olhandoDireita ? jogador.largura : -30);
+    jogador.projetilY = jogador.y + 20;
+    jogador.projetilVelocidadeX = jogador.olhandoDireita ? 12.0f : -12.0f;
+    jogador.projetilDano = 5;
+    jogador.energia -= 30;
+}
 
-            // Atualiza o projétil ativo
-            if (jogador.projetilAtivo)
-            {
-                jogador.projetilX += jogador.projetilVelocidadeX;
+// Atualiza o projétil ativo
+if (jogador.projetilAtivo)
+{
+    jogador.projetilX += jogador.projetilVelocidadeX;
 
-                for (int i = 0; i < MAX_INIMIGOS; i++)
+    // Tamanho do projétil
+    float projetilLargura = 25;
+    float projetilAltura = 25;
+
+    // Verifica colisão com inimigos
+    for (int i = 0; i < MAX_INIMIGOS; i++)
+    {
+        if (inimigos[i].ativo)
+        {
+            Rectangle rectProjetil = {
+                jogador.projetilX,
+                jogador.projetilY,
+                projetilLargura,
+                projetilAltura
+            };
+            Rectangle rectInimigo = {
+                inimigos[i].x,
+                inimigos[i].y,
+                inimigos[i].largura,
+                inimigos[i].altura
+            };
+
+            if (CheckCollisionRecs(rectProjetil, rectInimigo))
+            {
+                // Calcula 25% da vida atual do Boss
+                int danoProjetil;
+                if (inimigos[i].eChefe)
                 {
-                    if (inimigos[i].ativo)
+                    // 25% da vida atual (mínimo 1 de dano)
+                    danoProjetil = (inimigos[i].vida * 25) / 100;
+                    if (danoProjetil < 1) danoProjetil = 1;
+                }
+                else
+                {
+                    danoProjetil = jogador.projetilDano;
+                }
+
+                inimigos[i].vida -= danoProjetil;
+
+                // Feedback visual
+                printf("Dano causado: %d, Vida restante: %d\n", danoProjetil, inimigos[i].vida);
+
+                if (inimigos[i].vida <= 0)
+                {
+                    inimigos[i].ativo = false;
+                    jogador.moedas += inimigos[i].eChefe ? 10 : 2;
+                    jogador.energia += 20;
+
+                    if (jogador.energia > jogador.energiaMaxima)
+                        jogador.energia = jogador.energiaMaxima;
+
+                    if (inimigos[i].eChefe)
                     {
-                        Rectangle rectProjetil = { jogador.projetilX, jogador.projetilY, 20, 20 };
-                        Rectangle rectInimigo = { inimigos[i].x, inimigos[i].y, inimigos[i].largura, inimigos[i].altura };
-
-                        if (CheckCollisionRecs(rectProjetil, rectInimigo))
+                        // Verifica se ainda tem fases
+                        if (faseAtual < 3) // Última fase é a 3
                         {
-                            if (inimigos[i].eChefe)
-                            {
-                                inimigos[i].vida -= inimigos[i].vida / 2;
-                            }
-                            else
-                            {
-                                inimigos[i].vida -= jogador.projetilDano;
-                            }
-
-                            if (inimigos[i].vida <= 0)
-                            {
-                                inimigos[i].ativo = false;
-                                jogador.moedas += inimigos[i].eChefe ? 5 : 1;
-
-                                if (inimigos[i].eChefe)
-                                {
-                                    if (proximaFase < 3)
-                                    {
-                                        proximaFase++;
-                                        faseAtual = 0;
-                                        emFase = false;
-                                        jogador.vida.atual = jogador.vida.maxima;
-                                        MudarDeFase(faseAtual, &mapaAtual, &jogador, inimigos, spriteInimigo, spriteBoss, plataformas);
-                                    }
-                                    else
-                                    {
-                                        estado = VITORIA;
-                                    }
-                                }
-                            }
-                            jogador.projetilAtivo = false;
-                            break;
+                            faseAtual++;
+                            jogador.vida.atual = jogador.vida.maxima;
+                            MudarDeFase(faseAtual, &mapaAtual, &jogador, inimigos, spriteInimigo, spriteBoss, plataformas);
+                        }
+                        else
+                        {
+                            estado = VITORIA;
                         }
                     }
                 }
-
-                if (jogador.projetilX > MAPA_COLUNAS * TAMANHO_BLOCO || jogador.projetilX < 0)
-                {
-                    jogador.projetilAtivo = false;
-                }
+                jogador.projetilAtivo = false;
+                break;
             }
+        }
+    }
 
+    // Remove o projétil se sair da tela
+    if (jogador.projetilX > (MAPA_COLUNAS * TAMANHO_BLOCO + 100) ||
+        jogador.projetilX < -100)
+    {
+        jogador.projetilAtivo = false;
+    }
+}
             if (jogador.ataqueEspecialAtivo)
             {
                 jogador.tempoAtaqueEspecial--;
@@ -641,7 +667,7 @@ int main()
 
             // Interface limpa de botões na HUD
             DrawText("S - Atacar", 25, 715, 16, RED);
-            DrawText("Z - Tiro Especial", 25, 740, 16, SKYBLUE);
+            DrawText("F - Tiro Especial", 25, 740, 16, SKYBLUE);
             DrawText("D - Dash", 25, 765, 16, BLUE);
 
             DrawText("A (segure) - Curar", 280, 715, 16, GREEN);

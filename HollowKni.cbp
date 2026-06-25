@@ -51,6 +51,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="mapa.h" />
+		<Unit filename="plataforma.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="plataforma.h" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>
